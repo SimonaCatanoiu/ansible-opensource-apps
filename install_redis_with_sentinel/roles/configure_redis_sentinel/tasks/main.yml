@@ -1,0 +1,54 @@
+- name: Create config redis for master
+  when: inventory_hostname in groups['redis01']
+  template:
+    src: redis-conf-{{ item }}.j2
+    dest: /etc/redis/redis-{{ item }}.conf
+  loop:
+    - master
+    - sentinel
+
+- name: Create config redis for slaves
+  when: inventory_hostname in groups['slaves']
+  template:
+    src: redis-conf-slave-{{ item }}.j2
+    dest: /etc/redis/redis-{{ item }}.conf
+  loop:
+    - master
+    - sentinel
+
+- name: Create systemd service redis
+  template: 
+    src: redis-service-{{ item }}.j2
+    dest: /etc/systemd/system/redis-{{ item }}.service
+  loop:
+    - master
+    - sentinel
+
+- name: Create symlink redis-cli
+  file:
+    src: /etc/redis/src/redis-cli
+    dest: /usr/sbin/redis-cli
+    state: link
+
+- name: Create symlink redis-server
+  file:
+    src: /etc/redis/src/redis-server
+    dest: /usr/sbin/redis-server
+    state: link
+
+- name: Reload daemon
+  shell: |
+    systemctl daemon-reload
+
+- name: Start and enable redis service
+  service:
+    name: redis-{{ item }}
+    state: started
+    enabled: yes
+  loop:
+    - master
+    - sentinel
+
+- name: Reload daemon
+  shell: |
+    systemctl restart redis-master.service redis-sentinel.service

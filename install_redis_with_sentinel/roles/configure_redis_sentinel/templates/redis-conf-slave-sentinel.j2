@@ -1,0 +1,10 @@
+port 26379
+daemonize no
+pidfile "/var/run/redis-sentinel.pid"
+logfile "/var/log/redis/redis-sentinel.log"
+dir "/var/lib/redis"
+sentinel monitor mymaster {{hostvars['redis01']['ansible_host']}} 6379 2
+sentinel down-after-milliseconds mymaster 5000
+
+sentinel failover-timeout mymaster 10000
+sentinel deny-scripts-reconfig yes

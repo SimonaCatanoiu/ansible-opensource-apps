@@ -1,0 +1,14 @@
+# /usr/lib/systemd/system/redis-sentinel.service
+Description=REDIS SENTINEL
+After=syslog.target network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/mkdir -p /var/lib/redis
+ExecStartPre=/bin/mkdir -p /var/log/redis
+ExecStart=/etc/redis/src/redis-sentinel /etc/redis/redis-sentinel.conf
+ExecStop=/bin/kill -s QUIT $MAINPID
+#Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

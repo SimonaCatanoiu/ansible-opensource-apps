@@ -1,0 +1,13 @@
+#playbook for installing redis with sentinel
+---
+- hosts: redis
+  gather_facts: yes
+  become: yes
+  roles:
+    - { role: roles/install_redis }
+
+- hosts: redis
+  gather_facts: yes
+  become: yes
+  roles:
+    - { role: roles/configure_redis_sentinel }    

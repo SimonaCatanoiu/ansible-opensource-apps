@@ -1,0 +1,16 @@
+# /usr/lib/systemd/system/redis.service
+Description=REDIS SERVER
+After=syslog.target network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/mkdir -p /var/log/redis
+ExecStartPre=/bin/mkdir -p /var/lib/redis
+ExecStart=/etc/redis/src/redis-server /etc/redis/redis-master.conf
+ExecStop=/bin/kill -s QUIT $MAINPID
+Restart=on-failure
+LimitNOFILE=200000
+
+
+[Install]
+WantedBy=multi-user.target
