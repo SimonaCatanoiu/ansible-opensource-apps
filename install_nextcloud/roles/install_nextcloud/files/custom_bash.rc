@@ -1,0 +1,23 @@
+# Aliases for safety and convenience
+alias ll='ls -l'
+alias cp='cp -i'
+alias rm='rm -i'
+alias mv='mv -i'
+alias mkdir='mkdir -p'
+alias ..='cd ..'
+alias ...='cd ../..'
+
+# History config
+HISTTIMEFORMAT="%d/%m/%y %T "
+HISTFILESIZE=
+HISTSIZE=
+shopt -s histappend
+shopt -s checkwinsize
+PROMPT_COMMAND='history -a'
+
+# Nextcloud-specific helpers
+alias nc-log='tail -f /var/www/nextcloud/data/nextcloud.log'
+alias nc-occ='sudo -u www-data php /var/www/nextcloud/occ'
+
+# Optional: Colored prompt
+PS1='\\[\\e[0;32m\\]\\u@\\h:\\w\\$ \\[\\e[m\\]'

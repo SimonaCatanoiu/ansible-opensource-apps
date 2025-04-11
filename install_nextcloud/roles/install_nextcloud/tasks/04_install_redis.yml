@@ -1,0 +1,16 @@
+- name: redis_server | Install redis server packages
+  ansible.builtin.package:
+    name: "{{ redis_deps }}"
+    state: present
+  vars:
+    redis_deps:
+      - redis-server
+      - "php{{ php_ver }}-redis"
+  notify: Start redis
+
+- name: redis_server | Configure redis server
+  ansible.builtin.template:
+    dest: /etc/redis/redis.conf
+    src: templates/redis.conf.j2
+    mode: 0640
+  notify: Restart redis

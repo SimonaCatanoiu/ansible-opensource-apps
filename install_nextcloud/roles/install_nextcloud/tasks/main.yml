@@ -1,0 +1,40 @@
+- name: Update packages and install prerequisites
+  ansible.builtin.import_tasks: 00_prerequisites.yml
+  tags:
+    - prerequisites
+    - setup
+
+- name: Creates a separate xfs filesystem on a different disk for the nextcloud data
+  ansible.builtin.import_tasks: 01_data_partition.yml
+  tags:
+    - xfs
+
+- name: Install php
+  ansible.builtin.import_tasks: 02_install_php.yml
+  tags:
+    - php
+
+- name: Install & configure nginx
+  ansible.builtin.import_tasks: 03_install_nginx.yml
+  tags:
+    - nginx
+
+- name: Install & configure redis
+  ansible.builtin.import_tasks: 04_install_redis.yml
+  tags:
+    - redis
+
+- name: Install & configure mysql
+  ansible.builtin.import_tasks: 05_install_mysql.yml
+  tags:
+    - mysql
+
+- name: Install & configure nextcloud
+  ansible.builtin.import_tasks: 06_install_nextcloud.yml
+  tags:
+    - nextcloud
+
+- name: Install additional nextcloud apps
+  ansible.builtin.import_tasks: 07_install_nextcloud_apps.yml
+  tags:
+    - apps

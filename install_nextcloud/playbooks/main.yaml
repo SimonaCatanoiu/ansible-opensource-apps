@@ -1,0 +1,6 @@
+---
+- name: Install Nextcloud 31.0.1 on Ubuntu
+  hosts: nextcloud
+  become: yes
+  roles:
+  - { role: roles/install_nextcloud }

@@ -1,0 +1,44 @@
+- name: Create separate data partition | Check if partition exists
+  stat:
+    path: "{{ nextcloud_data_partition }}"
+  register: data_partition_exists
+
+- name: Create separate data partition | Create partition if it doesn't exist
+  command: "parted -s {{ nextcloud_data_device }} mklabel gpt mkpart primary {{ nextcloud_data_fstype }} 0% 100%"
+  when: not data_partition_exists.stat.exists
+
+- name: Create separate data partition | Wait for partition to appear
+  wait_for:
+    path: "{{ nextcloud_data_partition }}"
+    timeout: 10
+  when: not data_partition_exists.stat.exists
+
+- name: Create separate data partition | Check if partition is already {{ nextcloud_data_fstype }}
+  command: lsblk -no FSTYPE {{ nextcloud_data_partition }}
+  register: data_partition_fs
+  changed_when: false
+  failed_when: false
+
+- name: Create separate data partition | Format partition as {{ nextcloud_data_fstype }} if not already
+  filesystem:
+    fstype: "{{ nextcloud_data_fstype }}"
+    dev: "{{ nextcloud_data_partition }}"
+  when: data_partition_fs.stdout != nextcloud_data_fstype
+
+- name: Create separate data partition | Create mount point
+  file:
+    path: "{{ nextcloud_data_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: data_partition_fs.stdout != nextcloud_data_fstype
+
+- name: Create separate data partition | Mount and add to fstab
+  mount:
+    path: "{{ nextcloud_data_dir }}"
+    src: "{{ nextcloud_data_partition }}"
+    fstype: "{{ nextcloud_data_fstype }}"
+    opts: defaults
+    state: mounted
+  when: data_partition_fs.stdout != nextcloud_data_fstype

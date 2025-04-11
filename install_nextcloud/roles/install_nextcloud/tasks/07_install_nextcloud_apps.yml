@@ -1,0 +1,40 @@
+
+- name: Install Nextcloud Apps
+  when:
+    - nextcloud_apps is defined
+  tags:
+    - install_apps
+  block:
+    - name: List installed Nextcloud apps
+      nextcloud.admin.run_occ:
+        nextcloud_webroot: "{{ nextcloud_webroot }}"
+        command: "app:list --output=json_pretty --no-warnings"
+      register: nc_apps_list
+      changed_when: false
+      check_mode: false
+
+    - name: Convert app list JSON to variable
+      set_fact:
+        nc_available_apps: "{{ nc_apps_list.stdout | from_json }}"
+
+    - name: Install Nextcloud app if not already installed
+      nextcloud.admin.run_occ:
+        nextcloud_webroot: "{{ nextcloud_webroot }}"
+        command: "app:install {{ item.name }}"
+      register: install_output
+      failed_when: "'No such app' in install_output.stdout or 'could not be downloaded' in install_output.stdout"
+      changed_when: "'installed' in install_output.stdout"
+      ignore_errors: true
+      loop: "{{ nextcloud_apps }}"
+      when: item.name not in nc_available_apps.enabled and item.name not in nc_available_apps.disabled
+
+    - name: Enable Nextcloud app if not already enabled
+      nextcloud.admin.run_occ:
+        nextcloud_webroot: "{{ nextcloud_webroot }}"
+        command: "app:enable {{ item.name }}"
+      register: enable_output
+      changed_when: "'enabled' in enable_output.stdout"
+      failed_when: "'No such app' in enable_output.stdout"
+      loop: "{{ nextcloud_apps }}"
+      when: item.name not in nc_available_apps.enabled
+
