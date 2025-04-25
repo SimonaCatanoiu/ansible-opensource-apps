@@ -1,0 +1,68 @@
+- name: Ensure Certbot is installed via Snap
+  snap:
+    name: certbot
+    state: present
+    classic: true
+
+- name: Install Certbot Cloudflare DNS plugin via Snap
+  shell: |
+    snap set certbot trust-plugin-with-root=ok
+    snap install certbot-dns-cloudflare
+  args:
+    creates: /snap/bin/certbot-dns-cloudflare
+
+- name: Symlink certbot to /usr/bin
+  file:
+    src: /snap/bin/certbot
+    dest: /usr/bin/certbot
+    state: link
+    force: yes
+
+- name: Run documentserver-letsencrypt.sh
+  ansible.builtin.command:
+    cmd: >
+      bash /usr/bin/documentserver-letsencrypt.sh
+      {{ letsencrypt_email }} {{ onlyoffice_domain }}
+  args:
+    creates: "/etc/letsencrypt/live/{{ onlyoffice_domain }}/fullchain.pem"
+  notify: nginx-restart
+  when: not lets_encrypt_dns_verification
+
+- name: Copy custom dns-documentserver-letsencrypt.sh
+  ansible.builtin.copy:
+    src: "files/custom_dns_verification_certbot.sh"
+    dest: "/usr/bin/dns-documentserver-letsencrypt.sh"
+    owner: root
+    group: root
+    mode: '0644'
+  when: lets_encrypt_dns_verification
+
+- name: Ensure /etc/letsencrypt directory exists
+  ansible.builtin.file:
+    path: /etc/letsencrypt
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: lets_encrypt_dns_verification
+
+- name: Create Cloudflare API credentials file for Certbot
+  ansible.builtin.copy:
+    dest: /etc/letsencrypt/cloudflare.ini
+    content: |
+      dns_cloudflare_api_token = {{ cloudflare_api_token }}
+    owner: root
+    group: root
+    mode: '0600'
+  when: lets_encrypt_dns_verification
+
+- name: Run dns-documentserver-letsencrypt.sh
+  ansible.builtin.command:
+    cmd: >
+      bash /usr/bin/dns-documentserver-letsencrypt.sh
+      {{ letsencrypt_email }} {{ onlyoffice_domain }}
+  args:
+    creates: "/etc/letsencrypt/live/{{ onlyoffice_domain }}/fullchain.pem"
+  notify: nginx-restart
+  when: lets_encrypt_dns_verification
+

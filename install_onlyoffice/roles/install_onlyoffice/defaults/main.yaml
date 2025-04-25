@@ -1,0 +1,22 @@
+onlyoffice_domain: "yourdom.example.com" 
+onlyoffice_ip: "127.0.0.1" #works if left like this
+
+onlyoffice_db_host: "127.0.0.1"
+onlyoffice_db_user: "onlyoffice"
+onlyoffice_db_password: "onlyoffice"
+onlyoffice_db_name: "onlyoffice"
+
+
+#-----TLS WITH LETS ENCRYPT VARS------#
+tls_with_lets_encrypt: false
+letsencrypt_email: "your_mail@example.com"
+
+lets_encrypt_dns_verification: true 
+cloudflare_api_token: "CLOUDFLARE_API_KEY"
+
+#-----TLS WITH OWN CERT VARS------#
+tls_use_own_cert: true
+local_cert_chain_path: "files/cert.crt"
+local_cert_key_path: "files/cert.key"
+host_cert_chain_path: "/etc/ssl/certs/onlyoffice.crt"
+host_cert_key_path: "/etc/ssl/private/onlyoffice.key"

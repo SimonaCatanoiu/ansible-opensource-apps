@@ -1,0 +1,28 @@
+- name: Install psycopg2 Python library
+  ansible.builtin.apt:
+    name: python3-psycopg2
+    state: present
+  become: true
+
+- name: Install PostgreSQL
+  become: true
+  apt:
+    name: postgresql
+    state: present
+    update_cache: yes
+
+- name: Ensure OnlyOffice DB user exists
+  become: true
+  become_user: postgres
+  postgresql_user:
+    name: "{{ onlyoffice_db_user }}"
+    password: "{{ onlyoffice_db_password }}"
+    state: present
+
+- name: Ensure OnlyOffice DB exists
+  become: true
+  become_user: postgres
+  postgresql_db:
+    name: "{{ onlyoffice_db_name }}"
+    owner: "{{ onlyoffice_db_user }}"
+    state: present

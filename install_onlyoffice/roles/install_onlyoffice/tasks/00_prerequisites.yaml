@@ -1,0 +1,58 @@
+- name: Ensure ACL tools are installed
+  become: true
+  apt:
+    name: acl
+    state: present
+    update_cache: yes
+
+- name: Update APT cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+    
+- name: Upgrade all packages to latest version
+  ansible.builtin.apt:
+    upgrade: "yes"
+    force_apt_get: true
+
+- name: Ensure chrony is installed
+  package:
+    name: chrony
+    state: present
+
+- name: Ensure chrony is enabled and running
+  service:
+    name: chronyd
+    state: started
+    enabled: yes
+
+- name: Set timezone to Europe/Bucharest
+  ansible.builtin.command: timedatectl set-timezone Europe/Bucharest
+
+- name: Backup existing bash.bashrc
+  copy:
+    src: /etc/bash.bashrc
+    dest: /etc/bash.bashrc.bak
+    remote_src: yes
+    backup: yes
+
+- name: Ensure OnlyOffice domain is in /etc/hosts
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ onlyoffice_ip }} {{ onlyoffice_domain }}"
+    state: present
+
+- name: Append custom shell config to /etc/bash.bashrc
+  lineinfile:
+    path: /etc/bash.bashrc
+    line: 'source /etc/profile.d/custom_bash.rc'
+    state: present
+
+- name: Copy custom bash config to profile.d
+  copy:
+    src: files/custom_bash.rc
+    dest: /etc/profile.d/custom_bash.rc
+    owner: root
+    group: root
+    mode: '0644'

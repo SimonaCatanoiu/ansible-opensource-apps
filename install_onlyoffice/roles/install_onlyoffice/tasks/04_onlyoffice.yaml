@@ -1,0 +1,91 @@
+- name: Ensure debconf-utils is installed
+  become: true
+  apt:
+    name: debconf-utils
+    state: present
+    update_cache: yes
+
+- name: Preconfigure PostgreSQL database host
+  ansible.builtin.debconf:
+    name: onlyoffice-documentserver
+    question: onlyoffice/db-host
+    value: "{{ onlyoffice_db_host }}"
+    vtype: string
+
+- name: Preconfigure PostgreSQL database user
+  ansible.builtin.debconf:
+    name: onlyoffice-documentserver
+    question: onlyoffice/db-user
+    value: "{{ onlyoffice_db_user }}"
+    vtype: string
+
+- name: Preconfigure PostgreSQL database password
+  ansible.builtin.debconf:
+    name: onlyoffice-documentserver
+    question: onlyoffice/db-pwd
+    value: "{{ onlyoffice_db_password }}"
+    vtype: password
+
+- name: Preconfigure PostgreSQL database name
+  ansible.builtin.debconf:
+    name: onlyoffice-documentserver
+    question: onlyoffice/db-name
+    value: "{{ onlyoffice_db_name }}"
+    vtype: string
+
+- name: Ensure GnuPG home exists for root
+  file:
+    path: /root/.gnupg
+    state: directory
+    mode: '0700'
+    owner: root
+    group: root
+
+- name: Download and import ONLYOFFICE GPG key into temp keyring
+  shell: |
+    curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE \
+    | gpg --no-default-keyring \
+          --keyring gnupg-ring:/tmp/onlyoffice.gpg \
+          --import
+  args:
+    creates: /tmp/onlyoffice.gpg
+
+- name: Set permissions on temp keyring
+  file:
+    path: /tmp/onlyoffice.gpg
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Move ONLYOFFICE keyring into /usr/share/keyrings
+  copy:
+    src: /tmp/onlyoffice.gpg
+    dest: /usr/share/keyrings/onlyoffice.gpg
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+    force: yes
+
+- name: Clean up temporary keyring
+  file:
+    path: /tmp/onlyoffice.gpg
+    state: absent
+
+- name: Add ONLYOFFICE Docs APT repository
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] https://download.onlyoffice.com/repo/debian squeeze main"
+    filename: onlyoffice
+    state: present
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install required packages
+  apt:
+    name:
+      - ttf-mscorefonts-installer
+      - onlyoffice-documentserver
+    state: present
+    update_cache: yes

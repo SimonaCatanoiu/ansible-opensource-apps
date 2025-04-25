@@ -1,0 +1,37 @@
+- name: Copy SSL certificate to target host
+  ansible.builtin.copy:
+    src: "{{ local_cert_chain_path }}"
+    dest: "{{ host_cert_chain_path }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Copy SSL private key to target host
+  ansible.builtin.copy:
+    src: "{{ local_cert_key_path }}"
+    dest: "{{ host_cert_key_path }}"
+    owner: root
+    group: root
+    mode: '0600'
+
+- name:  TLS with own cert | Copy default ds-ssl.conf.tmpl to ds.conf
+  ansible.builtin.copy:
+    src: "/etc/onlyoffice/documentserver/nginx/ds-ssl.conf.tmpl"
+    dest: "/etc/onlyoffice/documentserver/nginx/ds.conf"
+    remote_src: yes
+  notify: nginx-restart
+
+- name: TLS with own cert | Replace placeholders in ds.conf with actual values
+  ansible.builtin.replace:
+    path: "/etc/onlyoffice/documentserver/nginx/ds.conf"
+    regexp: '{{ item.regex }}'
+    replace: '{{ item.replace }}'
+  loop:
+    - regex: '\{\{SSL_CERTIFICATE_PATH\}\}'
+      replace: '{{ host_cert_chain_path }}'
+    - regex: '\{\{SSL_KEY_PATH\}\}'
+      replace: '{{ host_cert_key_path }}'
+
+- name: TLS with own cert | Run documentserver-update-securelink.sh
+  ansible.builtin.command:
+    cmd: "bash /usr/bin/documentserver-update-securelink.sh"

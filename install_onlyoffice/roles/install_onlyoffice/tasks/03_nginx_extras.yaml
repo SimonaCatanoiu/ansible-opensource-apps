@@ -1,0 +1,4 @@
+- name: Install Nginx Extras
+  apt:
+    name: nginx-extras
+    state: present

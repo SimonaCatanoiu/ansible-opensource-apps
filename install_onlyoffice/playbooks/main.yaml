@@ -1,0 +1,5 @@
+- name: Install and configure OnlyOffice Document Server on Ubuntu
+  hosts: onlyoffice
+  become: true
+  roles:
+    - { role: roles/install_onlyoffice }

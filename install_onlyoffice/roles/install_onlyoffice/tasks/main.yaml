@@ -1,0 +1,39 @@
+- name: Update packages and install prerequisites
+  ansible.builtin.import_tasks: 00_prerequisites.yaml
+  tags:
+    - prerequisites
+    - setup
+
+- name: Install & configure postgresql
+  ansible.builtin.import_tasks: 01_postgresql.yaml
+  tags:
+    - postgresql
+
+- name: Install & configure rabbitmq
+  ansible.builtin.import_tasks: 02_rabbitmq.yaml
+  tags:
+    - rabbitmq
+
+- name: Install & configure nginx extras
+  ansible.builtin.import_tasks: 03_nginx_extras.yaml
+  tags:
+    - nginx
+    - nginx-extras
+
+- name: Install & configure onlyoffice
+  ansible.builtin.import_tasks: 04_onlyoffice.yaml
+  tags:
+    - onlyoffice
+
+- name: Configure tls with let's encrypt
+  ansible.builtin.import_tasks: 06_tls_lets_encrypt.yaml
+  when: tls_with_lets_encrypt
+  tags:
+    - certbot
+    - tls-lets-encrypt
+
+- name: Configure tls with own certificate
+  ansible.builtin.import_tasks: 05_tls_own_cert.yaml
+  when: tls_use_own_cert
+  tags:
+    - tls-own-cert
