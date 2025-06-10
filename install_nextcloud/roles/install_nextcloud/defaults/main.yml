@@ -1,17 +1,19 @@
 ---
 # [NEXTCLOUD CONFIG]
+nextcloud_version: "25.0.4" #Nextcloud version
+nextcloud_download_url: "https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.tar.bz2"
 nextcloud_trusted_domain:
   - "my-nextcloud-test.mydom.ro" #Domain name
   - "{{ ansible_host }}" #Local IP address
 nextcloud_instance_name: "{{ nextcloud_trusted_domain | first }}"
 nextcloud_trusted_proxies:
-  - "<external_load_balancer_ip>" #External load balancer IP -> Optional (leave empty if not needed)
+  - "" #External load balancer IP -> Optional (leave empty if not needed)
 
 # [PHP CONFIG]
 php_ver: "8.3"
 php_dir: "/etc/php/{{ php_ver }}"
 php_socket: "/run/php/php{{ php_ver }}-fpm.sock"
-php_memory_limit: 512M
+php_memory_limit: 1024M
 php_pkg_spe:
   - "php{{ php_ver }}-ctype"
   - "php{{ php_ver }}-curl"
@@ -38,8 +40,8 @@ php_pkg_spe:
   - "php{{ php_ver }}-mbstring"
   - "php{{ php_ver }}-imagick"
 
-# [NGINX CONFIG]
-nextcloud_websrv: "nginx"
+# [NGINX/APACHE CONFIG]
+nextcloud_websrv: "nginx" #Supported: nginx, apache2
 nextcloud_install_tls: true
 nextcloud_tls_enforce: true
 nextcloud_tls_cert_file: "/etc/ssl/private/nextcloud.crt"
@@ -52,6 +54,7 @@ nextcloud_tls_dhparam: "/etc/ssl/dhparam.pem"
 nextcloud_mozilla_modern_ssl_profile : false
 nextcloud_hsts: false
 nextcloud_max_upload_size: 512m
+nextcloud_max_upload_size_in_bytes: "{{ nextcloud_max_upload_size | human_to_bytes }}"
 
 # [REDIS CONFIG]
 nextcloud_redis_host: '/var/run/redis/redis.sock'
@@ -59,25 +62,28 @@ nextcloud_redis_port: 0
 
 # [DATABASE CONFIG]
 nextcloud_db_host: "127.0.0.1"
-nextcloud_db_backend: "mysql"
+nextcloud_db_backend: "mysql" #Supported: mysql and pgsql
 nextcloud_db_enabled_on_startup: true
 nextcloud_db_name: "nextcloud"
 nextcloud_db_admin: "ncadmin" #Modify this  -> use ansible vault
 nextcloud_db_pwd: "placintebune"  #Modify this  -> use ansible vault
 nextcloud_mysql_root_pwd_update: true
 nextcloud_mysql_root_pwd: "placintebune" #Modify this  -> use ansible vault
+# Variables For MySQL
 mysql_daemon: "mysql" 
 
 # [NEXTCLOUD CONFIG] 
+nextcloud_install_data_partition: false #Set to false if you don't want a separate data partition
+#Variables for the nextcloud data mount point -> Optional if /data is on a separate disk
+nextcloud_data_device: /dev/vdb
+nextcloud_data_partition: /dev/vdb1
+nextcloud_data_fstype: xfs
+
 nextcloud_data_dir: "/data" #Data mount point
 nextcloud_webroot: "/opt/nextcloud"
 nextcloud_admin_name: "admin"
 nextcloud_admin_pwd: "placintebune" #Modify this -> use ansible vault
 
-#Variables for the nextcloud data mount point -> Optional if /data is not on a separate disk
-nextcloud_data_device: /dev/vdb
-nextcloud_data_partition: /dev/vdb1
-nextcloud_data_fstype: xfs
 
 nextcloud_config_settings:
   - { name: 'default_phone_region', value: 'RO' }
@@ -98,42 +104,30 @@ nextcloud_redis_settings:
   - { name: 'mail_domain', value: 'mydom_mail.com' }  #Modify this
 
 nextcloud_apps:
-  - { name: accessibility }
   - { name: activity }
+  - { name: groupfolders }
   - { name: admin_audit }
   - { name: bruteforcesettings }
-  - { name: calendar }
+  - { name: circles }
   - { name: cloud_federation_api }
   - { name: comments }
-  - { name: contacts }
   - { name: contactsinteraction }
   - { name: dashboard }
   - { name: dav }
-  - { name: documentserver_community }
-  - { name: encryption }
   - { name: federatedfilesharing }
   - { name: federation }
   - { name: files }
-  - { name: files_external }
   - { name: files_pdfviewer }
   - { name: files_rightclick }
   - { name: files_sharing }
   - { name: files_trashbin }
   - { name: files_versions }
-  - { name: files_videoplayer }
   - { name: firstrunwizard }
-  - { name: forms }
-  - { name: groupfolders }
   - { name: logreader }
-  - { name: metadata }
-  - { name: monitoring }
   - { name: lookup_server_connector }
   - { name: nextcloud_announcements }
-  - { name: notes }
   - { name: notifications }
-  - { name: pdfviewer }
   - { name: oauth2 }
-  - { name: onlyoffice }
   - { name: password_policy }
   - { name: photos }
   - { name: privacy }
@@ -141,21 +135,34 @@ nextcloud_apps:
   - { name: recommendations }
   - { name: related_resources }
   - { name: serverinfo }
-  - { name: settings }
   - { name: sharebymail }
-  - { name: spreed }
+  - { name: settings }
+  - { name: sociallogin }
   - { name: support }
   - { name: survey_client }
   - { name: systemtags }
   - { name: text }
   - { name: theming }
-  - { name: theming_customcss }
-  - { name: twofactor_admin }
   - { name: twofactor_backupcodes }
-  - { name: twofactor_totp }
   - { name: updatenotification }
-  - { name: user_ldap }
   - { name: user_status }
   - { name: viewer }
   - { name: weather_status }
   - { name: workflowengine }
+ - { name: accessibility }
+ - { name: calendar }
+ - { name: contacts }
+ - { name: documentserver_community }
+ - { name: encryption }
+ - { name: files_external }
+ - { name: files_videoplayer }
+ - { name: forms }
+ - { name: metadata }
+ - { name: monitoring }
+ - { name: notes }
+ - { name: pdfviewer }
+ - { name: spreed }
+ - { name: theming_customcss }
+ - { name: twofactor_admin }
+ - { name: twofactor_totp }
+ - { name: user_ldap }

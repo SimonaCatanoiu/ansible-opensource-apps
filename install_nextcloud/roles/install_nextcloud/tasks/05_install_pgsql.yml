@@ -1,0 +1,27 @@
+---
+- name: db_postgresql | Install PostgreSQL packages
+  ansible.builtin.package:
+    name: "{{ pg_deps }}"
+    state: "present"
+  vars:
+    pg_deps:
+      - "postgresql"
+      - "python3-psycopg2"
+
+- name: db_postgresql | Create PostgreSQL Nextcloud role
+  community.postgresql.postgresql_user:
+    name: "{{ nextcloud_db_admin }}"
+    password: "{{ nextcloud_db_pwd }}"
+    encrypted: true
+    state: present
+    role_attr_flags: CREATEDB
+  become_user: postgres
+  become: true
+
+- name: db_postgresql | Create PostgreSQL Nextcloud database
+  community.postgresql.postgresql_db:
+    name: "{{ nextcloud_db_name }}"
+    state: present
+    owner: "{{ nextcloud_db_admin }}"
+  become_user: postgres
+  become: true

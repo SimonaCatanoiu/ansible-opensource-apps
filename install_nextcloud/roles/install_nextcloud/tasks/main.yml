@@ -5,6 +5,7 @@
     - setup
 
 - name: Creates a separate xfs filesystem on a different disk for the nextcloud data
+  when: nextcloud_install_data_partition | bool
   ansible.builtin.import_tasks: 01_data_partition.yml
   tags:
     - xfs
@@ -16,8 +17,17 @@
 
 - name: Install & configure nginx
   ansible.builtin.import_tasks: 03_install_nginx.yml
+  when: nextcloud_websrv in ["nginx"]
   tags:
     - nginx
+
+- name: Install & configure apache
+  ansible.builtin.import_tasks: 03_install_apache.yml
+  when: nextcloud_websrv in ["apache2"]
+  tags:
+    - apache
+    - apache2
+    - httpd
 
 - name: Install & configure redis
   ansible.builtin.import_tasks: 04_install_redis.yml
@@ -26,8 +36,17 @@
 
 - name: Install & configure mysql
   ansible.builtin.import_tasks: 05_install_mysql.yml
+  when: nextcloud_db_backend in ["mysql"]
   tags:
     - mysql
+
+- name: Install & configure pgsql
+  ansible.builtin.import_tasks: 05_install_pgsql.yml
+  when: nextcloud_db_backend in ["pgsql"]
+  tags:
+    - pgsql
+    - postgresql
+    - postgres
 
 - name: Install & configure nextcloud
   ansible.builtin.import_tasks: 06_install_nextcloud.yml

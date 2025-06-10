@@ -7,7 +7,7 @@
   block:
     - name: List installed Nextcloud apps
       nextcloud.admin.run_occ:
-        nextcloud_webroot: "{{ nextcloud_webroot }}"
+        nextcloud_path: "{{ nextcloud_webroot }}"
         command: "app:list --output=json_pretty --no-warnings"
       register: nc_apps_list
       changed_when: false
@@ -19,7 +19,7 @@
 
     - name: Install Nextcloud app if not already installed
       nextcloud.admin.run_occ:
-        nextcloud_webroot: "{{ nextcloud_webroot }}"
+        nextcloud_path: "{{ nextcloud_webroot }}"
         command: "app:install {{ item.name }}"
       register: install_output
       failed_when: "'No such app' in install_output.stdout or 'could not be downloaded' in install_output.stdout"
@@ -30,7 +30,7 @@
 
     - name: Enable Nextcloud app if not already enabled
       nextcloud.admin.run_occ:
-        nextcloud_webroot: "{{ nextcloud_webroot }}"
+        nextcloud_path: "{{ nextcloud_webroot }}"
         command: "app:enable {{ item.name }}"
       register: enable_output
       changed_when: "'enabled' in enable_output.stdout"

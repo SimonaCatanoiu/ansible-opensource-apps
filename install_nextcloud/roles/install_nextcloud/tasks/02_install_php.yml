@@ -51,3 +51,9 @@
   ansible.builtin.package:
     name: "php{{ php_ver }}-apcu"
     state: present
+
+- name: php_install | Install php*-pgsql package
+  ansible.builtin.package:
+    name: "php{{ php_ver }}-pgsql"
+    state: present
+  when: (nextcloud_db_backend == "pgsql")

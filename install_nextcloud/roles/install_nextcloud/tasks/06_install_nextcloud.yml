@@ -16,7 +16,7 @@
   block:
     - name: nc_download | Download & extract Nextcloud to /tmp
       ansible.builtin.unarchive:
-        src: "https://download.nextcloud.com/server/releases/nextcloud-31.0.1.tar.bz2"
+        src: "{{ nextcloud_download_url }}"
         dest: "/tmp/"
         remote_src: yes
             
@@ -79,7 +79,7 @@
           --admin-pass {{ nextcloud_admin_pwd }}
           --data-dir {{ nextcloud_data_dir }}
       vars:
-        nextcloud_tmp_backend: "{{ 'mysql' }}"
+        nextcloud_tmp_backend: "{{ nextcloud_db_backend if nextcloud_db_backend in ['mysql', 'pgsql'] else 'sqlite' }}"
       notify: Reload http
 
     - name: nc_installation | Verify config.php - check filesize
