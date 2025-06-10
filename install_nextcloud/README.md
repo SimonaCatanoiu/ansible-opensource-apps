@@ -1,6 +1,6 @@
 # 📦 Nextcloud Deployment via Ansible
 
-This project automates the installation and configuration of **Nextcloud** using **Ansible**. It's designed to set up a production-ready instance with NGINX, PHP, Redis, MySQL, TLS support, and a wide range of Nextcloud apps.
+This project automates the installation and configuration of **Nextcloud** using **Ansible**. It's designed to set up a production-ready instance with NGINX/APACHE, PHP, Redis, MySQL/Postgres, TLS support, and a wide range of Nextcloud apps.
 
 ---
 
@@ -76,8 +76,8 @@ Ensure your target hosts are accessible via SSH and properly defined in the `inv
 - 💾 Custom data partition setup.
 - 🚀 PHP 8.3 support with all required modules.
 - 📦 Multiple Nextcloud apps installed.
-- 🧠 Redis + MySQL integration for performance.
-- 📄 NGINX config templating via Jinja2.
+- 🧠 Redis + MySQL/PostgreSql integration for performance.
+- 📄 NGINX/Apache2 config templating via Jinja2.
 - 🔁 Modular role-based design for easy customization.
 
 ---
@@ -95,7 +95,7 @@ Ensure your target hosts are accessible via SSH and properly defined in the `inv
 
 - **Version**: `8.3`
 
-### 🌐 NGINX
+### 🌐 NGINX/APACHE
 
 - **TLS Support**: Enabled
 - **Custom Certs**: Located in `roles/install_nextcloud/files/`
@@ -106,7 +106,7 @@ Ensure your target hosts are accessible via SSH and properly defined in the `inv
 
 ### 💾 Database
 
-- **Backend**: MySQL
+- **Backend**: MySQL or Postgresql
 
 ---
 
