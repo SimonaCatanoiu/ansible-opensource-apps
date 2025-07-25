@@ -1,0 +1,7 @@
+---
+- name: Install Kafka
+  hosts: kafka_nodes
+  become: yes
+  gather_facts: yes
+  roles:
+  - { role: roles/install_kafka_role }

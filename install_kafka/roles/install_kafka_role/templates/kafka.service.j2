@@ -1,0 +1,20 @@
+[Unit]
+Description=Apache Kafka Server
+After=network.target
+
+[Service]
+Type=simple
+User={{ kafka_user }}
+Group={{ kafka_group }}
+ExecStart=/opt/kafka/bin/kafka-server-start.sh {{ kafka_conf_dir }}/server.properties
+ExecStop=/opt/kafka/bin/kafka-server-stop.sh {{ kafka_conf_dir }}/server.properties
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=100000
+Environment="KAFKA_LOG4J_OPTS=-Dlog4j.configuration=file:{{ kafka_conf_dir }}/log4j.properties"
+Environment="KAFKA_HEAP_OPTS=-Xmx{{ kafka_heap_size }} -Xms{{ kafka_heap_size }}"
+Environment="KAFKA_OPTS={{ kafka_opts | join(' ') }}"
+
+[Install]
+WantedBy=multi-user.target
+Alias=kafka.service

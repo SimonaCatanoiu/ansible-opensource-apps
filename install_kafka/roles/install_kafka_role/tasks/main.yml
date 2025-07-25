@@ -1,0 +1,33 @@
+- name: Update packages and install prerequisites
+  ansible.builtin.import_tasks: 00_prerequisite.yml
+  tags:
+    - prerequisites
+    - setup
+
+- name: Partition and format data disks
+  ansible.builtin.include_tasks: 01_partitioning.yml
+  loop: "{{ ansible_devices.keys() | select('match', '^(sd|nvme|vd)') | list }}"
+  loop_control:
+    loop_var: disk
+  tags:
+    - partitioning
+  when: data_disks_devices is defined and data_disks_devices
+
+- name: Install & configure Zookeeper
+  ansible.builtin.import_tasks: 02_install_zookeeper.yml
+  when: "'kafka_masters' in group_names and kafka_mode == 'zookeeper'"
+  tags:
+    - zookeeper
+
+- name: Install & configure Kafka Kraft
+  ansible.builtin.import_tasks: 03_install_kafka_kraft.yml
+  when: "kafka_mode == 'kraft'"
+  tags:
+    - kafka
+    - kraft
+
+- name: Install & configure Kafka
+  ansible.builtin.import_tasks: 03_install_kafka.yml
+  when: "'kafka_brokers' in group_names and kafka_mode == 'zookeeper'"
+  tags:
+    - kafka

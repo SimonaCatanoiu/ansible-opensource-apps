@@ -1,0 +1,41 @@
+- name: Get disk alignment for disk {{ disk }}
+  shell: >
+    if [[ -e /sys/block/{{ disk }}/queue/optimal_io_size &&
+          -e /sys/block/{{ disk }}/alignment_offset &&
+          -e /sys/block/{{ disk }}/queue/physical_block_size ]]; then
+      echo $[$(( ($(cat /sys/block/{{ disk }}/queue/optimal_io_size) +
+               $(cat /sys/block/{{ disk }}/alignment_offset)) /
+               $(cat /sys/block/{{ disk }}/queue/physical_block_size) )) | 2048];
+    else
+      echo 2048;
+    fi
+  register: disk_alignment
+
+- name: Partition disk {{ disk }}
+  shell: parted -s -a optimal /dev/{{ disk }} mklabel gpt mkpart primary {{ disk_filesystem }} {{ disk_alignment.stdout | default("2048") }}s 100% && sleep 5 && partprobe /dev/{{ disk }} && sleep 5
+  register: partition_result
+  when: ansible_devices[disk]['partitions'] == {}
+
+- name: Create filesystem on disk {{ disk }}
+  filesystem:
+    dev: "/dev/{{ disk }}1"
+    fstype: "{{ disk_filesystem }}"
+  when: partition_result is defined and partition_result.changed
+
+- name: Disable periodic fsck on {{ disk }}
+  shell: tune2fs -c0 -i0 /dev/{{ disk }}1
+  when:
+    - partition_result is defined and partition_result.changed
+    - disk_filesystem in ['ext3', 'ext4']
+
+- name: Mount kafka data disk {{ disk }}
+  mount:
+    state: mounted
+    src: "/dev/{{ item.1 }}1"
+    name: "/disk/{{ item.0 +1 }}"
+    fstype: "{{ disk_filesystem }}"
+    opts: defaults,noatime
+    dump: 0
+    passno: 0
+  with_indexed_items: "{{ data_disks_devices|default([]) }}"
+  when: partition_result is defined and partition_result.changed

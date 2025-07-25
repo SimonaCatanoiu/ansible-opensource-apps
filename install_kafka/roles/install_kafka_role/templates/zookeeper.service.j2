@@ -1,0 +1,21 @@
+[Unit]
+Description=Apache ZooKeeper Service
+Documentation=http://zookeeper.apache.org
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+User={{ zookeeper_user }}
+Group={{ zookeeper_group }}
+WorkingDirectory=/opt/zookeeper
+Environment=ZOO_LOG_DIR={{ zookeeper_log_dir }}
+Environment=ZOO_LOG4J_PROP=INFO,ROLLINGFILE
+LimitNOFILE=65535
+ExecStart=/opt/zookeeper/bin/zkServer.sh start {{ zookeeper_conf_dir }}/zoo.cfg
+ExecStop=/opt/zookeeper/bin/zkServer.sh stop {{ zookeeper_conf_dir }}/zoo.cfg
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

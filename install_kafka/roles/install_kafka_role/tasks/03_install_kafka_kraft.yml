@@ -1,0 +1,206 @@
+- name: Add group "kafka"
+  group:
+    name: "{{ kafka_group }}"
+    system: yes
+
+- name: Add user "kafka"
+  user:
+    name: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    shell: /sbin/nologin
+    system: yes
+
+- name: Download the tarball
+  get_url: url="http://{{ kafka_mirror }}/kafka/{{ kafka_version }}/kafka_{{ scala_version }}-{{ kafka_version }}.tgz" dest=/opt/kafka-{{ kafka_version }}.tgz
+
+- name: Extract the tarball
+  unarchive:
+    src: /opt/kafka-{{ kafka_version }}.tgz
+    dest: /opt/
+    copy: no
+    creates: /opt/kafka-{{ kafka_version }}
+
+- name: Symlink install directory
+  file:
+    src: "/opt/kafka_{{ scala_version }}-{{ kafka_version }}"
+    path: "{{ kafka_home }}"
+    state: link
+
+- name: Set kafka_node_roles based on group membership
+  ansible.builtin.set_fact:
+    kafka_node_roles: >-
+      {{
+        (
+          ('controller' if 'kafka_masters' in group_names else '') +
+          (',' if 'kafka_masters' in group_names and 'kafka_brokers' in group_names else '') +
+          ('broker' if 'kafka_brokers' in group_names else '')
+        ).split(',')
+      }}
+
+- name: Set kafka_node_id based on index in kafka_nodes
+  ansible.builtin.set_fact:
+    kafka_node_id: "{{ groups['kafka_nodes'].index(inventory_hostname) }}"
+
+- name: Set permissions on Kafka installation folder
+  file:
+    path: "{{ kafka_home }}/"
+    owner: root
+    group: root
+    recurse: yes
+
+- name: Create /kafka/data directory
+  file:
+    path: /kafka/data
+    state: directory
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+  when: data_disks_devices is not defined or not data_disks_devices or data_disks_devices|length <= 0
+
+- name: Create /disk/{0..n}/kafka/data directories
+  file: 
+    path: "/disk/{{ item.0 + 1 }}/kafka/data" 
+    state: directory
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+  with_indexed_items: "{{ data_disks_devices }}"
+  when: data_disks_devices is defined and data_disks_devices
+
+- name: Create Kafka log directory
+  file:
+    path: "{{ kafka_log_dir }}"
+    state: directory
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+
+- name: Link the log directory
+  file:
+    src: "{{ kafka_log_dir }}"
+    path: "{{ kafka_home }}/logs"
+    state: link
+
+- name: Create Kafka conf directory
+  file:
+    path: "{{ kafka_conf_dir }}"
+    state: directory
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    mode: '0755'
+
+- name: Install Kafka systemd unit file
+  template:
+    src: kafka.service.j2
+    dest: /etc/systemd/system/kafka.service
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Add controller nodes to group
+  ansible.builtin.add_host:
+    name: "{{ item }}"
+    group: kafka_group_controller_nodes
+  when: item in groups['kafka_masters']
+  loop: "{{ ansible_play_hosts }}"
+  changed_when: false
+  loop_control:
+    label: "{{ item }}"
+
+- name: Add broker nodes to group
+  ansible.builtin.add_host:
+    name: "{{ item }}"
+    group: kafka_group_broker_nodes
+  when: item in groups['kafka_brokers']
+  loop: "{{ ansible_play_hosts }}"
+  changed_when: false
+  loop_control:
+    label: "{{ item }}"
+
+- name: Configure Kafka server
+  template:
+    src: kafka.kraft.server.properties.j2
+    dest: "{{ kafka_conf_dir }}/server.properties"
+  notify: Restart kafka
+
+- name: Upload log4j configs
+  copy:
+    src: "{{ item }}"
+    dest: "{{ kafka_conf_dir }}/"
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    mode: '0644'
+  with_items:
+    - log4j.properties
+    - tools-log4j.properties
+  notify: Restart kafka
+
+- name: Check if cluster UUID file exists
+  stat:
+    path: "{{ kafka_home }}/CLUSTER_UUID.lock"
+  register: kafka_reg_check_uuid_file
+  delegate_to: "{{ groups['kafka_group_controller_nodes'] | first }}"
+  run_once: true
+
+- name: Generate UUID if needed
+  command: "{{ kafka_home }}/bin/kafka-storage.sh random-uuid"
+  register: kafka_reg_storage_random_uuid
+  when: 
+    - kafka_cluster_id is not defined
+    - not kafka_reg_check_uuid_file.stat.exists
+  delegate_to: "{{ groups['kafka_group_controller_nodes'] | first }}"
+  run_once: true
+
+- name: Set cluster UUID
+  set_fact:
+    kafka_cluster_id: "{{ kafka_reg_storage_random_uuid.stdout }}"
+  when: 
+    - kafka_cluster_id is not defined
+    - not kafka_reg_check_uuid_file.stat.exists
+  run_once: true
+
+- name: Write UUID to file if not exists
+  copy:
+    content: "{{ kafka_cluster_id }}"
+    dest: "{{ kafka_home }}/CLUSTER_UUID.lock"
+    mode: "0444"
+  when: 
+    - not kafka_reg_check_uuid_file.stat.exists
+    - inventory_hostname in groups["kafka_group_controller_nodes"]
+
+- name: Read UUID from file
+  command: cat "{{ kafka_home }}/CLUSTER_UUID.lock"
+  register: kafka_reg_cluster_uuid
+  when: kafka_cluster_id is not defined
+  delegate_to: "{{ groups['kafka_group_controller_nodes'] | first }}"
+  run_once: true
+
+- name: Set UUID from file (if needed)
+  set_fact:
+    kafka_cluster_id: "{{ kafka_reg_cluster_uuid.stdout }}"
+  when: kafka_cluster_id is not defined
+  run_once: true
+
+- name: Check if data directory is formatted
+  ansible.builtin.stat:
+    path: "{{ kafka_log_dir }}/meta.properties"
+  register: kafka_reg_check_if_formatted
+
+- name: Format kafka log directory
+  ansible.builtin.command:
+    cmd: >
+      {{ kafka_home }}/bin/kafka-storage.sh format
+      --config {{ kafka_conf_dir }}/server.properties
+      --cluster-id {{ kafka_cluster_id }}
+  changed_when: true
+  when: not kafka_reg_check_if_formatted.stat.exists
+
+- name: Set ownership and permissions for /kafka recursively
+  file:
+    path: /kafka
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    mode: '0755'
+    recurse: yes
+
+- name: Make sure Kafka is running
+  service:
+    name: kafka.service
+    enabled: yes
+    state: started

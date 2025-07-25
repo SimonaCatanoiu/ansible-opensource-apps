@@ -1,0 +1,9 @@
+packages:
+  - vim
+  - lsof
+  - parted
+  - iotop
+  - unzip
+  - curl
+  - wget
+  - chrony

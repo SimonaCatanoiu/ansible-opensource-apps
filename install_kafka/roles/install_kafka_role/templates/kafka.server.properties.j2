@@ -1,0 +1,67 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements. See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+############################# Server Basics #############################
+
+broker.id={{ groups['kafka_brokers'].index(inventory_hostname) }}
+
+############################# Socket Server Settings #############################
+
+port={{ kafka_port }}
+listeners=PLAINTEXT://{{ ansible_host }}:{{ kafka_port }}
+advertised.listeners=PLAINTEXT://{{ ansible_host }}:{{ kafka_port }}
+inter.broker.listener.name={{ kafka_inter_broker_listener_name }}
+num.network.threads={{ kafka_num_network_threads | default(2) }}
+num.io.threads={{ kafka_num_io_threads | default(8) }}
+socket.send.buffer.bytes={{ kafka_socket_send_buffer_bytes }}
+socket.receive.buffer.bytes={{ kafka_socket_recieve_buffer_bytes }}
+socket.request.max.bytes={{ kafka_socket_request_max_bytes }}
+
+############################# Log Basics #############################
+
+log.dirs={% for disk in ansible_mounts if disk.mount.startswith('/disk') %}{{ disk.mount }}/kafka/data{% if not loop.last %},{% endif %}{% else %}/kafka/data{%- endfor %}
+
+num.partitions={{ kafka_default_num_partitions }}
+num.recovery.threads.per.data.dir={{ kafka_num_recovery_threads_per_data_dir }}
+
+############################# Log Flush Policy #############################
+
+log.flush.interval.messages={{ kafka_log_flush_interval_messages | default(10000) }}
+log.flush.interval.ms={{ kafka_log_flush_interval_ms | default(1000) }}
+
+############################# Log Retention Policy #############################
+
+log.retention.hours={{ kafka_log_retention_hours }}
+log.retention.bytes={{ kafka_log_retention_bytes }}
+log.segment.bytes={{ kafka_log_segment_bytes }}
+log.retention.check.interval.ms={{ kafka_log_retention_check_interval_ms }}
+log.cleaner.enable={{ kafka_log_cleaner_enable | default(false) | lower }}
+
+############################# Transactions #############################
+
+transaction.state.log.replication.factor={{ kafka_transaction_state_log_replication_factor }}
+transaction.state.log.min.isr={{ kafka_transaction_state_log_min_isr }}
+
+############################# Offsets & Groups #############################
+
+offsets.topic.num.partitions={{ kafka_offsets_topic_num_partitions }}
+offsets.topic.replication.factor={{ kafka_offsets_topic_replication_factor }}
+group.initial.rebalance.delay.ms={{ kafka_group_initial_rebalance_delay_ms }}
+
+############################# Zookeeper #############################
+
+zookeeper.connect={% for server in groups['kafka_masters'] %}{{ hostvars[server]['ansible_host'] }}:{{ zookeeper_client_port }}{% if not loop.last %},{% endif %}{% endfor %}
+
+zookeeper.connection.timeout.ms={{ kafka_zookeeper_connection_timeout_ms | default(1000000) }}
